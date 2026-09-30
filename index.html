@@ -1,0 +1,25 @@
+<!doctype html><html lang=ko><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>VideoBridge AI V9</title><link rel="manifest" href="/static/manifest.json"><meta name="theme-color" content="#07101d"><style>
+progress{width:100%;height:14px;margin:8px 0}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#203754;font-size:12px;margin-right:5px}.warn{color:#fbbf24}
+*{box-sizing:border-box}body{margin:0;background:#07101d;color:#fff;font-family:system-ui}main{max-width:780px;margin:auto;padding:18px}.card{background:#121d30;border:1px solid #29405f;border-radius:18px;padding:16px;margin:12px 0}input,select,textarea,button{width:100%;padding:12px;margin:6px 0;border-radius:12px;background:#0b1728;color:#fff;border:1px solid #36506f}button{background:#2563eb;font-weight:800}.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}video{width:100%;border-radius:12px}.muted{color:#94a3b8}.seg{border-top:1px solid #344a67;padding:9px 0}.time{font-size:12px;color:#91a4bd}.hero{font-size:28px;font-weight:900}.green{color:#86efac}</style><main>
+<div class=hero>VideoBridge AI V9</div><p class=muted>영상 하나 → 언어 선택 → 자동 번역 → AI 더빙 → MP4</p><p class=muted>Android Chrome: 배포 URL 접속 후 메뉴 → 홈 화면에 추가/앱 설치</p>
+<div class=card><b>1. 영상 선택</b><input id=f type=file accept=video/*><video id=v controls></video></div>
+<div class=card><b>2. 언어 / 목소리</b><div class=g><select id=from><option value=ko>한국어</option><option value=zh>中文</option><option value=en>English</option></select><select id=to><option value=zh>中文</option><option value=ko>한국어</option><option value=en>English</option></select></div><div class=g><select id=gender><option value=female>여성 AI 음성</option><option value=male>남성 AI 음성</option></select><select id=sub><option value=translation>번역 자막</option><option value=dual>원문 + 번역</option><option value=source>원문 자막</option></select></div><button id=go>✨ 자동 처리 시작</button><p id=st>영상 선택 후 시작하세요.</p><progress id=prog max=100 value=0></progress><div><span class=pill id=model>Whisper: -</span><span class=pill id=dur>길이: -</span></div></div>
+<div class=card><b>3. 전문용어</b><textarea id=terms rows=5>수해리 테이프=水解离胶带
+보호필름=保护膜
+점착력=粘着力
+박리력=剥离力
+고온고습=高温高湿
+저장 탄성률=储能模量
+반도체=半导体
+OCA=OCA
+FOCA=FOCA
+PSA5=PSA5
+PSA6=PSA6</textarea></div>
+<div class=card><b>4. 자동 번역 결과</b><div id=out class=muted>처리 후 문장별로 수정할 수 있습니다.</div></div>
+<div class=card><b>5. 최종 더빙 MP4</b><div class=g><div>원음<input id=orig type=range min=0 max=100 value=12></div><div>AI 더빙<input id=dub type=range min=0 max=100 value=100></div></div><button id=render>🎬 더빙 MP4 만들기</button><p class=muted>Neural TTS 문장별 생성 → 타임코드 길이 보정 → 원음 믹스 → 자막 번인 → H.264/AAC MP4</p></div>
+<script>
+const $=x=>document.getElementById(x);let job,segs=[];$('f').onchange=e=>{let f=e.target.files[0];if(f)$('v').src=URL.createObjectURL(f)};
+function show(){$('out').innerHTML=segs.map((s,i)=>`<div class=seg><div class=time>${s.start.toFixed(2)}–${s.end.toFixed(2)}</div><div>${s.source}</div><textarea data-i=${i} rows=2>${s.translation}</textarea></div>`).join('');document.querySelectorAll('[data-i]').forEach(x=>x.oninput=e=>segs[+e.target.dataset.i].translation=e.target.value)}
+$('go').onclick=async()=>{let f=$('f').files[0];if(!f)return alert('영상 선택');let fd=new FormData();fd.append('video',f);fd.append('source',$('from').value);fd.append('target',$('to').value);fd.append('gender',$('gender').value);fd.append('terms',$('terms').value);$('prog').value=15;$('st').textContent='Whisper 음성인식 + 자동 번역 중…';let r=await fetch('/api/process',{method:'POST',body:fd});if(!r.ok){$('st').textContent=await r.text();return}let j=await r.json();job=j.job;segs=j.segments;$('model').textContent='Whisper: '+j.model;$('dur').textContent='길이: '+Math.round(j.duration)+'초';$('prog').value=65;show();$('st').innerHTML='<span class=green>자동 번역 완료</span> — 필요하면 문장을 수정하세요.'};
+$('render').onclick=async()=>{if(!job)return alert('먼저 자동 처리');let fd=new FormData();fd.append('job',job);fd.append('target',$('to').value);fd.append('gender',$('gender').value);fd.append('segments',JSON.stringify(segs));fd.append('original_volume',$('orig').value/100);fd.append('dub_volume',$('dub').value/100);fd.append('subtitle_mode',$('sub').value);$('prog').value=72;$('st').textContent='Neural TTS + 자막 + MP4 렌더링 중…';let r=await fetch('/api/render',{method:'POST',body:fd});if(!r.ok){$('st').textContent='실패: '+await r.text();return}let b=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='VideoBridge_V6_dubbed.mp4';a.click();$('prog').value=100;$('st').innerHTML='<span class=green>완료 — 더빙 MP4가 생성되었습니다.</span>'};
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
