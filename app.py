@@ -34,7 +34,7 @@ def srt_time(s):
  return f"{h:02}:{m:02}:{sec:02},{ms:03}"
 
 @app.get("/")
-def home(): return FileResponse(B/"static"/"index.html")
+def home(): return FileResponse(B/"index.html")
 
 @app.post("/api/process")
 async def process(video:UploadFile=File(...),source:str=Form("ko"),target:str=Form("zh"),gender:str=Form("female"),terms:str=Form("")):
