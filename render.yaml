@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: videobridge-ai-v9
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: WHISPER_MODEL
+        value: tiny
+      - key: MAX_UPLOAD_MB
+        value: "200"
